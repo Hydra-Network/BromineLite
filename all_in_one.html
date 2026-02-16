@@ -150,7 +150,7 @@
   </template>
 
   <!-- Scripts -->
-  <script defer src="https://cdn.jsdelivr.net/gh/Galaxy-Vortex/BromineLite@main/lib/sandstone.js"></script>
+  <script defer src="https://cdn.jsdelivr.net/gh/Hydra-Network/BromineLite@main/lib/sandstone.js"></script>
   <script type="module">
     const from_id = (id) => document.getElementById(id);
     const create_element = (type) => document.createElement(type);
@@ -222,7 +222,7 @@
           card.className = "bg-surface border border-overlay rounded-xl p-3 w-64 text-center shadow-sm hover:scale-105 transition-transform cursor-pointer";
           card.innerHTML = `<h3 class='mt-2 font-medium text-text truncate'>${g.title}</h3>`;
           card.onclick = () => {
-            fetch(`https://cdn.jsdelivr.net/gh/Galaxy-Vortex/hydra-assets@main/${g.file_name}?t=${Date.now()}`)
+            fetch(`https://cdn.jsdelivr.net/gh/Hydra-Network/hydra-assets@main/${g.file_name}?t=${Date.now()}`)
               .then(response => response.text())
               .then(html => {
                 const newWin = window.open("about:blank", "_blank");
@@ -256,7 +256,7 @@
       };
 
       try {
-        const res = await fetch("https://cdn.jsdelivr.net/gh/Galaxy-Vortex/bromine@main/src/data/gmes.json");
+        const res = await fetch("https://cdn.jsdelivr.net/gh/Hydra-Network/bromine@main/src/data/gmes.json");
         gmes_data = await res.json();
         render(gmes_data);
       } catch {

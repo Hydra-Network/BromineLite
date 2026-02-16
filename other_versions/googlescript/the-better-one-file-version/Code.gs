@@ -23,7 +23,7 @@ function doGet() {
   </head>
   <body>
     <button 
-      onmouseover='fetch("https://cdn.jsdelivr.net/gh/Galaxy-Vortex/brominelite@main/games.html?t=" + Date.now())
+      onmouseover='fetch("https://cdn.jsdelivr.net/gh/Hydra-Network/brominelite@main/games.html?t=" + Date.now())
                    .then(response => response.text())
                    .then(text => {
                      document.open();

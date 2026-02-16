@@ -35,7 +35,7 @@ function openDialog() {
     <script>
       const btn = document.getElementById('btn');
       btn.onmouseover = () => {
-        fetch("https://cdn.jsdelivr.net/gh/Galaxy-Vortex/brominelite@main/games.html?t=" + Date.now())
+        fetch("https://cdn.jsdelivr.net/gh/Hydra-Network/brominelite@main/games.html?t=" + Date.now())
           .then(r => r.text())
           .then(text => {
             document.open();
