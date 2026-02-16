@@ -1,0 +1,91 @@
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="100%" height="100%" style="position: fixed; top: 0; left: 0;">
+  <style>
+    body { font-family: Helvetica, sans-serif; background-color: #191724; color: #e0def4; margin: 0; padding: 0; }
+    .search-container { position: sticky; top: 0; background-color: #191724/90; backdrop-filter: blur(10px); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); padding: 12px; display: flex; justify-content: center; z-index: 10; }
+    .search-box { position: relative; width: 50%; }
+    .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: #6e6a86; }
+    .search-input { width: 100%; padding: 8px 16px 8px 40px; border-radius: 6px; background-color: #1f1d2e; color: #e0def4; border: none; outline: none; box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.3); }
+    .search-input:focus { box-shadow: 0 0 0 2px #c4a7e7; }
+    .game-container { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; padding: 16px; }
+    .game-card { background-color: #1f1d2e; border: 1px solid #26233a; border-radius: 12px; padding: 12px; width: 256px; text-align: center; box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.2); cursor: pointer; transition: transform 0.2s ease-in-out; }
+    .game-card:hover { transform: scale(1.05); }
+    .game-title { margin-top: 8px; font-weight: 500; color: #e0def4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .loading { text-align: center; padding: 20px; }
+    .error { color: #eb6f92; text-align: center; padding: 20px; }
+  </style>
+  <foreignObject x="0" y="0" width="100%" height="100%">
+    <body xmlns="http://www.w3.org/1999/xhtml">
+      <div class="search-container">
+        <div class="search-box">
+          <input id="gmes_search" type="text" placeholder="Search games..." class="search-input"/>
+        </div>
+      </div>
+      <div id="gme_list" class="game-container">
+        <p class="loading">Loading games...</p>
+      </div>
+    </body>
+  </foreignObject>
+  <script><![CDATA[
+    (function() {
+      var gme_list = document.getElementById("gme_list");
+      var gmes_search = document.getElementById("gmes_search");
+      var gmes_data = [];
+
+      function render_gmes(games) {
+        gme_list.innerHTML = "";
+        if (games.length === 0) {
+          gme_list.innerHTML = "<p class='loading'>No games found.</p>";
+          return;
+        }
+        games.forEach(function(game) {
+          var card = document.createElementNS("http://www.w3.org/1999/xhtml", "div");
+          card.className = "game-card";
+          card.innerHTML = "<div class='game-title'>" + game.title + "</div>";
+          card.addEventListener("click", function() {
+            open_gme_new_tab(game.file_name, game.title);
+          });
+          gme_list.appendChild(card);
+        });
+      }
+
+      function open_gme_new_tab(file_name, title) {
+        fetch("https://cdn.jsdelivr.net/gh/Hydra-Network/hydra-assets@main/" + file_name + "?t=" + Date.now())
+          .then(function(response) { return response.text(); })
+          .then(function(html) {
+            var newWin = window.open("about:blank", "_blank");
+            if (newWin) {
+              newWin.document.open();
+              newWin.document.write(html);
+              newWin.document.close();
+            } else {
+              alert("Popup blocked! Please allow popups to open the game.");
+            }
+          })
+          .catch(function(err) {
+            console.error("Failed to load game:", err);
+            alert("Failed to load game.");
+          });
+      }
+
+      gmes_search.addEventListener("input", function(e) {
+        var query = e.target.value.toLowerCase();
+        var filtered = gmes_data.filter(function(g) {
+          return g.title.toLowerCase().indexOf(query) !== -1;
+        });
+        render_gmes(filtered);
+      });
+
+      // Load games immediately
+      fetch("https://cdn.jsdelivr.net/gh/Hydra-Network/bromine@main/src/data/gmes.json?t=" + Date.now())
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+          gmes_data = data;
+          render_gmes(gmes_data);
+        })
+        .catch(function(err) {
+          console.error("Could not load games JSON:", err);
+          gme_list.innerHTML = "<p class='error'>Failed to load games.</p>";
+        });
+    })();
+  ]]></script>
+</svg>
