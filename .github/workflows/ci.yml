@@ -1,44 +1,31 @@
-name: Update and Publish SVG Package
+name: Update Games SVG
 
 on:
   schedule:
-    - cron: '0 0 * * *'
+    - cron: '0 0 * * *' # Runs daily at midnight
   push:
     branches:
       - main
-  workflow_dispatch:
+  workflow_dispatch: # Manual trigger
 
 jobs:
-  publish:
+  build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
-      packages: write # Required to upload to GitHub Packages
+      contents: write
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          registry-url: 'https://npm.pkg.github.com'
-
-      - name: Generate SVG and Package Files
+      - name: Run Generator Script
         run: |
           cat << 'EOF' > internal_gen.js
           const fs = require("fs");
           const path = require("path");
 
-          // --- CONFIGURATION ---
-          const SCOPE = "@${{ github.repository_owner }}".toLowerCase();
-          const REPO_NAME = "${{ github.event.repository.name }}".toLowerCase();
-          const VERSION = "1.0.${{ github.run_number }}"; // Auto-increment version using run number
-          
           const GAMES_JSON_URL = "https://cdn.jsdelivr.net/gh/Hydra-Network/bromine@main/src/data/gmes.json";
-          const OUTPUT_SVG = path.join(process.cwd(), "index.svg");
-          const OUTPUT_PKG = path.join(process.cwd(), "package.json");
+          const OUTPUT_FILE = path.join(process.cwd(), "index.svg");
 
           const TEMPLATE = `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" style="display: block; background: #191724; overflow: scroll;">
           <style>
@@ -62,6 +49,13 @@ jobs:
           </style>
           <foreignObject x="0" y="0" width="100%" height="100%" style="overflow: scroll;">
             <body xmlns="http://www.w3.org/1999/xhtml">
+              <script async="async" src="https://www.googletagmanager.com/gtag/js?id=G-NQ3WX8KNQW"></script>
+              <script>
+                window.dataLayer = window.dataLayer || [];
+                function gtag() {dataLayer.push(arguments);}
+                gtag('js', new Date());
+                gtag('config', 'G-NQ3WX8KNQW');
+              </script>
               <div class="container">
                 <div class="search-bar">
                   <div class="search-wrapper">
@@ -73,18 +67,25 @@ jobs:
               </div>
               <script>
                 const gmes_search = document.getElementById("gmes_search");
-                const opengme = (file_name) => {
-                  fetch(\`https://raw.githubusercontent.com/Hydra-Network/hydra-assets/main/gmes/\${file_name}\`)
-                    .then(r => r.text())
-                    .then(h => {
-                      const w = window.open("about:blank", "_blank");
-                      if (w) { w.document.write(h); w.document.close(); }
-                    });
+                const opengme = (file_name, title, frame) => {
+                  fetch(\`https://raw.githubusercontent.com/Hydra-Network/hydra-assets/main/gmes/\${file_name}?t=\${Date.now()}\`)
+                    .then(response => response.text())
+                    .then(html => {
+                      const newWin = window.open("about:blank", "_blank");
+                      if (newWin) {
+                        newWin.document.open();
+                        newWin.document.write(html);
+                        newWin.document.close();
+                      } else {
+                        alert("Popup blocked!");
+                      }
+                    })
+                    .catch(err => console.error(err));
                 };
                 gmes_search.addEventListener("input", e => {
-                  const q = e.target.value.toLowerCase();
-                  document.querySelectorAll(".card").forEach(c => {
-                    c.style.display = c.dataset.title.toLowerCase().includes(q) ? "" : "none";
+                  const query = e.target.value.toLowerCase();
+                  document.querySelectorAll(".card").forEach(card => {
+                    card.style.display = card.dataset.title.toLowerCase().includes(query) ? "" : "none";
                   });
                 });
               </script>
@@ -93,34 +94,22 @@ jobs:
           </svg>`;
 
           async function generate() {
-            // 1. Generate SVG
             const res = await fetch(GAMES_JSON_URL);
             const games = await res.json();
             const cardsHtml = games.map((g) => {
               const thumb_url = g.thumb ? `https://raw.githubusercontent.com/Hydra-Network/hydra-assets/main/${g.thumb}` : null;
               const thumb_content = thumb_url ? `<img src="${thumb_url}" alt="${g.title}" loading="lazy"/>` : `<div class="no-image">No Image</div>`;
-              return `<div class="card" data-title="${g.title}" onclick="opengme('${g.file_name}')">${thumb_content}<div class="overlay"><h3>${g.title}</h3></div></div>`;
+              return `<div class="card" data-title="${g.title}" onclick="opengme('${g.file_name}', '${g.title}', '${g.frame || "false"}')">${thumb_content}<div class="overlay"><h3>${g.title}</h3></div></div>`;
             }).join("");
-            fs.writeFileSync(OUTPUT_SVG, TEMPLATE.replace("{{GAMES}}", cardsHtml));
-
-            // 2. Generate package.json
-            const pkg = {
-              name: `${SCOPE}/${REPO_NAME}`,
-              version: VERSION,
-              description: "Auto-generated games list SVG",
-              main: "index.svg",
-              publishConfig: {
-                registry: "https://npm.pkg.github.com"
-              }
-            };
-            fs.writeFileSync(OUTPUT_PKG, JSON.stringify(pkg, null, 2));
-            console.log(`Prepared package: ${pkg.name}@${pkg.version}`);
+            fs.writeFileSync(OUTPUT_FILE, TEMPLATE.replace("{{GAMES}}", cardsHtml));
+            console.log("Done");
           }
           generate();
           EOF
           node internal_gen.js
 
-      - name: Publish to GitHub Packages
-        run: npm publish
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: update index.svg"
+          file_pattern: 'index.svg'
